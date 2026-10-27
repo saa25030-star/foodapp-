@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>食品加工 製造記録アプリ</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- ナビゲーションバー -->
+    <header class="bg-emerald-700 text-white shadow-md">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-utensils text-2xl text-emerald-200"></i>
+                <h1 class="text-xl md:text-2xl font-bold tracking-tight">食品加工 製造記録管理</h1>
+            </div>
+            <!-- ユーザー情報 & ログアウトボタン -->
+            <div id="user-section" class="hidden flex items-center space-x-3">
+                <div class="flex items-center space-x-2 bg-emerald-800/60 px-3 py-1.5 rounded-full border border-emerald-600/50">
+                    <img id="user-photo" src="" alt="User Photo" class="w-7 h-7 rounded-full bg-emerald-900 border border-white/40">
+                    <span id="user-name" class="text-sm font-medium max-w-[120px] md:max-w-[200px] truncate"></span>
+                </div>
+                <button id="logout-btn" class="bg-red-500 hover:bg-red-600 text-white text-xs md:text-sm px-3 py-2 rounded-lg font-medium transition flex items-center gap-1 shadow-sm">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span class="hidden sm:inline">ログアウト</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="flex-grow max-w-6xl w-full mx-auto p-4 md:p-6">
+        
+        <!-- ログイン前画面 -->
+        <div id="login-view" class="flex flex-col items-center justify-center my-12 md:my-20">
+            <div class="bg-white p-8 md:p-10 rounded-2xl shadow-xl max-w-md w-full text-center border border-slate-100">
+                <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">ログインが必要です</h2>
+                <p class="text-slate-500 text-sm mb-6 leading-relaxed">
+                    食品加工実習の製造記録を登録・閲覧するには、Googleアカウントでログインしてください。
+                </p>
+                <button id="google-login-btn" class="w-full bg-white hover:bg-slate-50 text-slate-700 font-semibold py-3 px-4 border border-slate-300 rounded-xl shadow-sm transition flex items-center justify-center gap-3 active:scale-[0.98]">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                    </svg>
+                    Googleでログイン
+                </button>
+            </div>
+        </div>
+
+        <!-- ログイン後メインビュー -->
+        <div id="app-view" class="hidden space-y-8">
+            
+            <!-- 上部: 新規登録 / 編集フォーム -->
+            <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 md:p-6 transition-all">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-5">
+                    <h2 id="form-title" class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-plus-circle text-emerald-600"></i>
+                        新規製造記録の登録
+                    </h2>
+                    <button id="cancel-edit-btn" class="hidden text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium py-1 px-3 rounded-lg transition">
+                        編集をキャンセル
+                    </button>
+                </div>
+
+                <!-- エラーメッセージ通知枠 -->
+                <div id="error-message" class="hidden mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-rose-500"></i>
+                    <span id="error-text">入力内容をご確認ください。</span>
+                </div>
+
+                <form id="record-form" class="space-y-4">
+                    <input type="hidden" id="record-id" value="">
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- 1. 製品名 -->
+                        <div>
+                            <label for="product-name" class="block text-xs font-semibold text-slate-600 mb-1">
+                                製品名 <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="text" id="product-name" list="product-suggestions" placeholder="例: イチゴジャム, 味噌, ソーセージ" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition" required>
+                            <datalist id="product-suggestions">
+                                <option value="イチゴジャム">
+                                <option value="マーマレード">
+                                <option value="味噌">
+                                <option value="ポークソーセージ">
+                                <option value="パン">
+                                <option value="クッキー">
+                                <option value="リンゴジュース">
+                            </datalist>
+                        </div>
+
+                        <!-- 2. 製造日 -->
+                        <div>
+                            <label for="manufacture-date" class="block text-xs font-semibold text-slate-600 mb-1">
+                                製造日 <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="date" id="manufacture-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition" required>
+                        </div>
+
+                        <!-- 3. 製造数量 -->
+                        <div>
+                            <label for="quantity" class="block text-xs font-semibold text-slate-600 mb-1">
+                                製造数量 (個・本など) <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="number" id="quantity" min="1" placeholder="例: 25" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition" required>
+                        </div>
+
+                        <!-- 4. 賞味期限 -->
+                        <div>
+                            <label for="expiration-date" class="block text-xs font-semibold text-slate-600 mb-1">
+                                賞味期限 <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="date" id="expiration-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition" required>
+                        </div>
+                    </div>
+
+                    <!-- 5. メモ -->
+                    <div>
+                        <label for="memo" class="block text-xs font-semibold text-slate-600 mb-1">
+                            メモ (材料、味の評価、改善点など)
+                        </label>
+                        <textarea id="memo" rows="3" placeholder="原材料比率や加熱温度、味の反省点など..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"></textarea>
+                    </div>
+
+                    <!-- ボタン領域 -->
+                    <div class="flex justify-end pt-2">
+                        <button type="submit" id="submit-btn" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-6 rounded-xl shadow-md transition duration-200 flex items-center justify-center gap-2 active:scale-[0.98]">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span id="submit-btn-text">製造記録を登録</span>
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- 集計 & フィルターコントロール -->
+            <section class="space-y-4">
+                <!-- 製品ごとの製造数量の合計表示カード -->
+                <div class="bg-gradient-to-r from-emerald-800 to-teal-800 text-white rounded-2xl p-5 shadow-sm">
+                    <h3 class="text-xs font-semibold text-emerald-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-chart-pie"></i>
+                        製品別 総製造数量サマリー
+                    </h3>
+                    <div id="summary-container" class="flex flex-wrap gap-2 pt-1">
+                        <span class="text-sm text-emerald-100">記録されたデータがありません</span>
+                    </div>
+                </div>
+
+                <!-- 絞り込み & ソートコントロールバー -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                        <!-- 製品名絞り込み -->
+                        <div class="relative min-w-[180px]">
+                            <i class="fa-solid fa-filter absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+                            <select id="filter-product" class="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none font-medium text-slate-700">
+                                <option value="ALL">すべての製品を表示</option>
+                            </select>
+                        </div>
+                        <!-- ソート順 -->
+                        <div class="relative min-w-[180px]">
+                            <i class="fa-solid fa-arrow-down-wide-short absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+                            <select id="sort-order" class="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none font-medium text-slate-700">
+                                <option value="mfg-desc">製造日: 新しい順</option>
+                                <option value="mfg-asc">製造日: 古い順</option>
+                                <option value="exp-asc">賞味期限: 迫っている順</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 凡例 -->
+                    <div class="flex items-center gap-4 text-xs font-medium text-slate-500 self-end md:self-center">
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> 期限切れ</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> 3日以内</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 正常</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 登録データ一覧 -->
+            <section>
+                <div class="flex items-center justify-between mb-3 px-1">
+                    <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-slate-500"></i>
+                        製造記録 一覧
+                    </h3>
+                    <span id="record-count" class="text-xs bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full font-semibold">0 件</span>
+                </div>
+
+                <!-- カードグリッド表示 -->
+                <div id="records-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- JavaScriptで動的にカードを挿入 -->
+                </div>
+
+                <!-- 件数0件時のプレースホルダー -->
+                <div id="empty-state" class="hidden bg-white border border-dashed border-slate-300 rounded-2xl p-12 text-center">
+                    <i class="fa-solid fa-box-open text-4xl text-slate-300 mb-3 block"></i>
+                    <p class="text-slate-500 text-sm font-medium">表示できる製造記録がありません。</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- フッター -->
+    <footer class="bg-slate-800 text-slate-400 text-xs py-6 mt-12 text-center border-t border-slate-700">
+        <p>食品加工 実習製造記録アプリ &copy; 2026</p>
+    </footer>
+
+    <!-- Firebase SDK (v11.6.1) モジュール読み込み -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            GoogleAuthProvider, 
+            signInWithPopup, 
+            signOut, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            updateDoc, 
+            deleteDoc, 
+            doc, 
+            onSnapshot, 
+            query, 
+            serverTimestamp 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ==========================================
+        // 1. Firebase 設定
+        // ※ 提出用コードの firebaseConfig を指定
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyDbL1QF_JPR4qiJgTQS7KBJfQsW8Dt7oh8",
+            authDomain: "sample-555f7.firebaseapp.com",
+            projectId: "sample-555f7",
+            storageBucket: "sample-555f7.firebasestorage.app",
+            messagingSenderId: "776224293311",
+            appId: "1:776224293311:web:3a57c9c0be0fedb0a5610a"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const googleProvider = new GoogleAuthProvider();
+
+        // アプリID定義 (ルール1のパス用)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'foodapp';
+
+        // アプリ内ローカル状態
+        let currentUser = null;
+        let records = [];
+        let unsubscribeSnapshot = null;
+
+        // DOM要素参照
+        const loginView = document.getElementById('login-view');
+        const appView = document.getElementById('app-view');
+        const userSection = document.getElementById('user-section');
+        const userName = document.getElementById('user-name');
+        const userPhoto = document.getElementById('user-photo');
+        const googleLoginBtn = document.getElementById('google-login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        const recordForm = document.getElementById('record-form');
+        const recordIdInput = document.getElementById('record-id');
+        const productNameInput = document.getElementById('product-name');
+        const manufactureDateInput = document.getElementById('manufacture-date');
+        const quantityInput = document.getElementById('quantity');
+        const expirationDateInput = document.getElementById('expiration-date');
+        const memoInput = document.getElementById('memo');
+        const submitBtnText = document.getElementById('submit-btn-text');
+        const formTitle = document.getElementById('form-title');
+        const cancelEditBtn = document.getElementById('cancel-edit-btn');
+        const errorMessage = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+
+        const filterProduct = document.getElementById('filter-product');
+        const sortOrder = document.getElementById('sort-order');
+        const recordsGrid = document.getElementById('records-grid');
+        const emptyState = document.getElementById('empty-state');
+        const recordCount = document.getElementById('record-count');
+        const summaryContainer = document.getElementById('summary-container');
+
+        // デフォルトの日付初期設定 (本日日付)
+        const todayStr = new Date().toISOString().split('T')[0];
+        manufactureDateInput.value = todayStr;
+
+        // ==========================================
+        // 2. 認証処理 (Google Login & Auth State)
+        // ==========================================
+        googleLoginBtn.addEventListener('click', async () => {
+            try {
+                await signInWithPopup(auth, googleProvider);
+            } catch (error) {
+                console.error("Login failed:", error);
+                showError("Googleログインに失敗しました: " + error.message);
+            }
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                if (unsubscribeSnapshot) unsubscribeSnapshot();
+                await signOut(auth);
+            } catch (error) {
+                console.error("Logout failed:", error);
+            }
+        });
+
+        // 認証状態の監視
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                userName.textContent = user.displayName || user.email;
+                userPhoto.src = user.photoURL || 'https://placehold.co/100x100/10b981/ffffff?text=User';
+                
+                loginView.classList.add('hidden');
+                appView.classList.remove('hidden');
+                userSection.classList.remove('hidden');
+
+                // ログイン完了後にFirestoreの監視を開始
+                listenToRecords();
+            } else {
+                currentUser = null;
+                loginView.classList.remove('hidden');
+                appView.classList.add('hidden');
+                userSection.classList.add('hidden');
+                records = [];
+            }
+        });
+
+        // ==========================================
+        // 3. Firestore リアルタイムデータ取得
+        // Rule 1に従い /artifacts/{appId}/public/data/records を使用
+        // ==========================================
+        function listenToRecords() {
+            if (!currentUser) return;
+
+            // コンパウンドクエリ（orderBy等）を使わずシンプルに全取得（Rule 2）
+            const recordsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'records');
+
+            unsubscribeSnapshot = onSnapshot(recordsColRef, (snapshot) => {
+                records = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                updateProductFilterOptions();
+                renderRecords();
+            }, (error) => {
+                console.error("Firestore readout error:", error);
+                showError("データの読み込み中にエラーが発生しました。");
+            });
+        }
+
+        // ==========================================
+        // 4. データ登録・更新処理
+        // ==========================================
+        recordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideError();
+
+            const pName = productNameInput.value.trim();
+            const mDate = manufactureDateInput.value;
+            const qty = parseInt(quantityInput.value, 10);
+            const eDate = expirationDateInput.value;
+            const memo = memoInput.value.trim();
+            const recordId = recordIdInput.value;
+
+            // 未入力・数値バリデーション
+            if (!pName || !mDate || isNaN(qty) || qty <= 0 || !eDate) {
+                showError("すべての必須項目を正しく入力してください。");
+                return;
+            }
+
+            // 日付比較チェック：賞味期限が製造日より前はエラー
+            if (new Date(eDate) < new Date(mDate)) {
+                showError("賞味期限は製造日以降の日付を指定してください。");
+                return;
+            }
+
+            const recordData = {
+                productName: pName,
+                manufactureDate: mDate,
+                quantity: qty,
+                expirationDate: eDate,
+                memo: memo,
+                updatedAt: serverTimestamp(),
+                createdBy: currentUser.uid,
+                creatorName: currentUser.displayName || "匿名"
+            };
+
+            try {
+                const recordsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'records');
+
+                if (recordId) {
+                    // 更新 (編集)
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'records', recordId);
+                    await updateDoc(docRef, recordData);
+                } else {
+                    // 新規登録
+                    recordData.createdAt = serverTimestamp();
+                    await addDoc(recordsColRef, recordData);
+                }
+
+                resetForm();
+            } catch (err) {
+                console.error("Save error:", err);
+                showError("保存中にエラーが発生しました: " + err.message);
+            }
+        });
+
+        // フォームリセット処理
+        function resetForm() {
+            recordForm.reset();
+            recordIdInput.value = "";
+            manufactureDateInput.value = todayStr;
+            formTitle.innerHTML = `<i class="fa-solid fa-plus-circle text-emerald-600"></i> 新規製造記録の登録`;
+            submitBtnText.textContent = "製造記録を登録";
+            cancelEditBtn.classList.add('hidden');
+            hideError();
+        }
+
+        cancelEditBtn.addEventListener('click', resetForm);
+
+        // ==========================================
+        // 5. データ削除・編集のグローバル関数
+        // ==========================================
+        window.editRecord = function(id) {
+            const target = records.find(r => r.id === id);
+            if (!target) return;
+
+            recordIdInput.value = target.id;
+            productNameInput.value = target.productName || "";
+            manufactureDateInput.value = target.manufactureDate || "";
+            quantityInput.value = target.quantity || "";
+            expirationDateInput.value = target.expirationDate || "";
+            memoInput.value = target.memo || "";
+
+            formTitle.innerHTML = `<i class="fa-solid fa-pen-to-square text-amber-500"></i> 製造記録の編集`;
+            submitBtnText.textContent = "変更を保存";
+            cancelEditBtn.classList.remove('hidden');
+            
+            // フォーム領域にスクロール
+            recordForm.scrollIntoView({ behavior: 'smooth' });
+        };
+
+        window.deleteRecord = async function(id) {
+            if (!confirm("この製造記録を削除してもよろしいですか？")) return;
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'records', id);
+                await deleteDoc(docRef);
+            } catch (err) {
+                console.error("Delete error:", err);
+                showError("削除処理に失敗しました。");
+            }
+        };
+
+        // ==========================================
+        // 6. 絞り込み・ソート・集計・表示レンダリング
+        // ==========================================
+        filterProduct.addEventListener('change', renderRecords);
+        sortOrder.addEventListener('change', renderRecords);
+
+        function updateProductFilterOptions() {
+            const currentSelected = filterProduct.value;
+            const uniqueProducts = [...new Set(records.map(r => r.productName))].filter(Boolean);
+
+            filterProduct.innerHTML = '<option value="ALL">すべての製品を表示</option>';
+            uniqueProducts.forEach(prod => {
+                const opt = document.createElement('option');
+                opt.value = prod;
+                opt.textContent = prod;
+                filterProduct.appendChild(opt);
+            });
+
+            if (uniqueProducts.includes(currentSelected)) {
+                filterProduct.value = currentSelected;
+            }
+        }
+
+        function renderRecords() {
+            // メモリ上でのフィルタリング
+            const selectedProduct = filterProduct.value;
+            let filtered = records.filter(r => {
+                if (selectedProduct !== 'ALL' && r.productName !== selectedProduct) return false;
+                return true;
+            });
+
+            // メモリ上でのソート（Rule 2対応）
+            const sortMode = sortOrder.value;
+            filtered.sort((a, b) => {
+                if (sortMode === 'mfg-desc') {
+                    return new Date(b.manufactureDate) - new Date(a.manufactureDate);
+                } else if (sortMode === 'mfg-asc') {
+                    return new Date(a.manufactureDate) - new Date(b.manufactureDate);
+                } else if (sortMode === 'exp-asc') {
+                    return new Date(a.expirationDate) - new Date(b.expirationDate);
+                }
+                return 0;
+            });
+
+            // 集計 (製品ごとの製造数量合計) の更新
+            renderSummary();
+
+            // 件数カウント更新
+            recordCount.textContent = `${filtered.length} 件`;
+
+            if (filtered.length === 0) {
+                recordsGrid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            recordsGrid.innerHTML = filtered.map(r => createRecordCardHTML(r)).join('');
+        }
+
+        function renderSummary() {
+            if (records.length === 0) {
+                summaryContainer.innerHTML = '<span class="text-sm text-emerald-100">記録されたデータがありません</span>';
+                return;
+            }
+
+            // 製品名ごとに数量を集計
+            const totals = {};
+            records.forEach(r => {
+                const name = r.productName || '未設定';
+                const qty = Number(r.quantity) || 0;
+                totals[name] = (totals[name] || 0) + qty;
+            });
+
+            summaryContainer.innerHTML = Object.entries(totals).map(([prod, total]) => `
+                <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-3 py-1.5 flex items-center gap-2">
+                    <span class="text-xs font-medium text-emerald-100">${escapeHtml(prod)}:</span>
+                    <span class="text-sm font-bold text-white">${total.toLocaleString()}</span>
+                </div>
+            `).join('');
+        }
+
+        // 個別レコードカードのHTML生成（賞味期限の警告判定を含む）
+        function createRecordCardHTML(record) {
+            const expStatus = getExpirationStatus(record.expirationDate);
+            
+            // 賞味期限状態に応じたカード装飾
+            let borderStyle = "border-slate-200/80";
+            let badgeHTML = `<span class="bg-emerald-100 text-emerald-800 text-[11px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> 正常</span>`;
+            
+            if (expStatus === 'EXPIRED') {
+                borderStyle = "border-rose-400 bg-rose-50/20";
+                badgeHTML = `<span class="bg-rose-100 text-rose-800 text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 animate-pulse"><i class="fa-solid fa-triangle-exclamation"></i> 期限切れ</span>`;
+            } else if (expStatus === 'WARNING') {
+                borderStyle = "border-amber-400 bg-amber-50/20";
+                badgeHTML = `<span class="bg-amber-100 text-amber-800 text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-clock"></i> 期限直近 (3日以内)</span>`;
+            }
+
+            return `
+                <div class="bg-white rounded-2xl p-5 shadow-sm border ${borderStyle} flex flex-col justify-between hover:shadow-md transition">
+                    <div>
+                        <!-- ヘッダー: 製品名とバッジ -->
+                        <div class="flex items-start justify-between gap-2 mb-3">
+                            <h4 class="font-bold text-slate-800 text-base leading-snug break-words">${escapeHtml(record.productName)}</h4>
+                            ${badgeHTML}
+                        </div>
+
+                        <!-- 数量 & 日付情報 -->
+                        <div class="space-y-1.5 text-xs text-slate-600 mb-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-400 font-medium">製造数量:</span>
+                                <span class="font-bold text-slate-800 text-sm">${Number(record.quantity).toLocaleString()}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-400 font-medium">製造日:</span>
+                                <span class="font-semibold text-slate-700">${escapeHtml(record.manufactureDate)}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-400 font-medium">賞味期限:</span>
+                                <span class="font-semibold ${expStatus === 'EXPIRED' ? 'text-rose-600 font-bold' : expStatus === 'WARNING' ? 'text-amber-600 font-bold' : 'text-slate-700'}">${escapeHtml(record.expirationDate)}</span>
+                            </div>
+                        </div>
+
+                        <!-- メモ -->
+                        ${record.memo ? `
+                            <div class="text-xs text-slate-600 bg-slate-50/80 p-2.5 rounded-lg mb-4 whitespace-pre-wrap border border-slate-100">
+                                <span class="font-semibold text-slate-400 block mb-1"><i class="fa-regular fa-note-sticky"></i> メモ</span>
+                                ${escapeHtml(record.memo)}
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- カード下部: 投稿者 & アクションボタン -->
+                    <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                        <span class="text-slate-400 truncate max-w-[120px]" title="記録者: ${escapeHtml(record.creatorName || '')}">
+                            <i class="fa-regular fa-user"></i> ${escapeHtml(record.creatorName || '匿名')}
+                        </span>
+                        <div class="flex items-center gap-1">
+                            <button onclick="editRecord('${record.id}')" class="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition" title="編集">
+                                <i class="fa-solid fa-pen-to-square text-sm"></i>
+                            </button>
+                            <button onclick="deleteRecord('${record.id}')" class="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="削除">
+                                <i class="fa-solid fa-trash-can text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 賞味期限の状態判定 (3日以内/期限切れ)
+        function getExpirationStatus(expDateStr) {
+            if (!expDateStr) return 'NORMAL';
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const expDate = new Date(expDateStr);
+            expDate.setHours(0, 0, 0, 0);
+
+            const diffTime = expDate - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays < 0) return 'EXPIRED';
+            if (diffDays <= 3) return 'WARNING';
+            return 'NORMAL';
+        }
+
+        // ==========================================
+        // 7. ユーティリティ関数
+        // ==========================================
+        function showError(msg) {
+            errorText.textContent = msg;
+            errorMessage.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorMessage.classList.add('hidden');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gr;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
